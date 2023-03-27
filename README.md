@@ -20,12 +20,16 @@ avrdude -v -P /dev/cu.usbserial-<whatever> -p m328p -c arduino -U flash:w:avrisp
 
 Hook up your target AVR as usual. Common GND, Vcc, RST and the SPI (MOSI, MISO and SCK). Optionally connect the status indicator LEDs through current limiting series resistors.
 
+### Reset and SPI
+
 | Function | AVR Pin | Arduino Nano Pin |
 | -------- | ------- | ---------------- |
 | RST      | PB0     | D8               |
 | MOSI     | PB3     | D11              |
 | MISO     | PB4     | D12              |
 | SCK      | PB5     | D13              |
+
+### Programmer LEDs
 
 | Indicator LED               | AVR Pin | Arduino Nano Pin |
 | --------------------------- | ------- | ---------------- |
