@@ -72,7 +72,7 @@ Run `avrdude` in Terminal Mode.
 avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -t
 ```
 
-Set the sck half period duration with. Eg. for a 32768 Hz clocked target.
+Set the sck half period duration with. Eg. for a 32768 Hz clocked target. (This sets a slightly more than 61 microseconds sck half period. For caculation of this value, see below.)
 
 ```
 sck 66.2
