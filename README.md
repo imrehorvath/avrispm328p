@@ -88,7 +88,7 @@ Use `avrdude` as usual. The programmer remembers the sck half period duration un
 
 ### Sck half period calculation
 
-`avrdude` assumes that the `sck` programming parameter represents the count of `8000000/f` microseconds, where the `f` stands for the clock frequency of the programmer. `avrdude` further assumes that the programmer is clocked at 7.3728 MHz, so `f = 7372800`. However this firmware uses the same for the sck half period as the count of 1 microseconds.
+`avrdude` assumes that the `sck` programming parameter represents the count of `8000000/f` microseconds, where the `f` stands for the clock frequency of the programmer. `avrdude` further assumes that the programmer is clocked at 7.3728 MHz, so `f = 7372800`. However this firmware uses the same parameter (`sck`) for the sck half period as the count of 1 microseconds.
 
 To calculate the minimum required sck half period from the target frequency `FOSC_t`, we can use the formula.
 
