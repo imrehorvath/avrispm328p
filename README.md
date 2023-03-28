@@ -22,19 +22,19 @@ Hook up your target AVR as usual. Common GND, Vcc, RST and the SPI (MOSI, MISO a
 
 ### Reset and SPI
 
-| Function | AVR Pin | Arduino Nano Pin |
-| -------- | ------- | ---------------- |
-| RST      | PB0     | D8               |
-| MOSI     | PB3     | D11              |
-| MISO     | PB4     | D12              |
-| SCK      | PB5     | D13              |
+| Function | ATmega328P Pin | Arduino Nano Pin |
+| -------- | -------------- | ---------------- |
+| RST      | PB0            | D8               |
+| MOSI     | PB3            | D11              |
+| MISO     | PB4            | D12              |
+| SCK      | PB5            | D13              |
 
 ### Programmer LEDs
 
-| Indicator LED               | AVR Pin | Arduino Nano Pin |
-| --------------------------- | ------- | ---------------- |
-| In Programming Mode (Green) | PD7     | D7               |
-| Error Indication (Red)      | PD6     | D6               |
+| Indicator LED               | ATmega328P Pin | Arduino Nano Pin |
+| --------------------------- | -------------- | ---------------- |
+| In Programming Mode (Green) | PD7            | D7               |
+| Error Indication (Red)      | PD6            | D6               |
 
 **Note:** make sure you connect a 10 uF capacitor between the RESET and GND pins of your Arduino board when applicable to prevent it from going into the bootloader when you want to program your target.
 
