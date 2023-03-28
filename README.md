@@ -58,11 +58,11 @@ avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U lfuse:r:-:h -U 
 
 **Note:** for other uses, please refer to the manual of `avrdude`.
 
-## Set sck programming param for slow targets
+## Set sck programming param for slow targets (optional)
 
 This firmware uses a 2 microseconds sck half-period duration as default. This works with most recent parts with their factory default settings of using an internal 1 MHz clock. (Actually 8 MHz divided by 8)
 
-There are cases you might want to program In System a target clocked at a much slower frequency. Like a clock application running at 32768 Hz. In that case you need to set a longer sck half period duration.
+There are cases you might want to program In System a target clocked at a much slower frequency. Like a clock application running at 32.768 kHz. In that case you need to set a longer sck half period duration.
 
 ### Set a longer sck half period duration
 
@@ -72,11 +72,13 @@ Run `avrdude` in Terminal Mode.
 avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -t
 ```
 
-Set the sck half period duration with. Eg. for a 32768 Hz clocked target. (This sets a slightly more than 61 microseconds sck half period. For caculation of this value, see below.)
+Set the sck half period duration with the `sck` interactive command in `avrdude` Terminal Mode. (Eg. for a 32.768 kHz clocked target.)
 
 ```
 sck 66.2
 ```
+
+**Note:** this sets a slightly more than 61 microseconds sck half period in the programmer. For caculation of this value, please see below.
 
 Exit `avrdude`.
 
@@ -102,7 +104,7 @@ To compensate the formula `avrdude` uses to translate the entered value to the s
 v = ROUND(sckhp ÷ 0.9216, 1)
 ```
 
-### Example values
+#### Example target frequencies and sck values to be entered
 
 | FOSC_t   | sckhp   | v    |
 | -------: | ------: | ---: |
