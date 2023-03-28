@@ -104,9 +104,9 @@ To compensate the formula `avrdude` uses to translate the entered value to the s
 v = ROUND(sckhp ÷ 0.9216, 1)
 ```
 
-#### Example target frequencies and sck values
+#### Pre-calculated sck values
 
-**Note:** select the target frequency `FOSC_t` and enter the corresponding sck half period value `v` as the argument to the `sck` command.
+**Note:** select the target frequency `FOSC_t` and use the corresponding sck half period value `v` as the argument to the `sck` command.
 
 | FOSC_t   | sckhp   | v    |
 | -------: | ------: | ---: |
