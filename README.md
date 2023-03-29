@@ -94,13 +94,13 @@ There are cases, you might want to program a target -In System- clocked at much 
 
 `avrdude` assumes that the `sck` programming parameter represents the count of `8000000/f` microseconds, where the `f` stands for the clock frequency of the programmer. `avrdude` further assumes that the programmer is clocked at 7.3728 MHz, so `f = 7372800`. However this firmware uses the same parameter `sck` for the SCK half-period as the count of 1 microseconds.
 
-To calculate the minimum required SCK half-period from the target frequency `FOSC_t`, we can use the formula.
+To calculate the minimum required SCK half-period from the target frequency `FOSC_t`, we can use the following formula.
 
 ```
 sckhp = 1 ÷ IF(FOSC_t < 12000000, FOSC_t ÷ 4, FOSC_t ÷ 6) × 1000000 ÷ 2
 ```
 
-To calculate the value `v` we need to enter as argument to the `sck` command, to achieve the desired SCK half-period duration, we can use the formula.
+To calculate the value we need to enter as the argument to the `sck` command to achieve the desired SCK half-period duration, we can use the following formula.
 
 ```
 v = ROUND(sckhp ÷ 0.9216, 1)
