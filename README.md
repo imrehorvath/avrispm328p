@@ -88,7 +88,7 @@ There are cases, you might want to program a target -In System- clocked at much 
    q
    ```
 
-4. Use `avrdude` as usual. The programmer remembers the SCK half-period duration until reset or power-cycled.
+4. Use `avrdude` as usual. (The programmer remembers the SCK half-period duration until reset or power-cycled.)
 
 ### SCK half-period calculation
 
