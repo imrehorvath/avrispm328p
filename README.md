@@ -100,15 +100,13 @@ To calculate the minimum required SCK half-period from the target frequency `FOS
 sckhp = 1 ÷ IF(FOSC_t < 12000000, FOSC_t ÷ 4, FOSC_t ÷ 6) × 1000000 ÷ 2
 ```
 
-To compensate the formula `avrdude` uses to translate the entered value to the `sck` param which in turn gets sent to the programmer, we can use the following, to calculate the minumum number `v`, which needs to be entered in the Terminal Mode.
+To calculate the value `v` we need to enter as argument to the `sck` command, to achieve the desired SCK half-period duration, we can use the formula.
 
 ```
 v = ROUND(sckhp ÷ 0.9216, 1)
 ```
 
 #### Pre-calculated sck values
-
-**Note:** select the target frequency `FOSC_t` and use the corresponding SCK half-period value `v` as the argument to the `sck` command, to achieve the desired minimum SCK half-period duration `sckhp`.
 
 | FOSC_t   | sckhp   | v    |
 | -------: | ------: | ---: |
