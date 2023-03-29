@@ -66,29 +66,29 @@ There are cases, you might want to program a target -In System- clocked at much 
 
 ### Set a longer SCK half-period duration
 
-Run `avrdude` in Terminal Mode.
+1. Run `avrdude` in Terminal Mode.
 
-```
-avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -t
-```
+   ```
+   avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -t
+   ```
 
-Set the SCK half-period duration with the `sck` interactive command in `avrdude` Terminal Mode. (Eg. for a 32.768 kHz clocked target.)
+2. Set the SCK half-period duration with the `sck` interactive command in `avrdude` Terminal Mode. (Eg. for a 32.768 kHz clocked target.)
 
-```
-sck 66.2
-```
+   ```
+   sck 66.2
+   ```
 
-![sck 66.2 on scope](https://raw.githubusercontent.com/imrehorvath/avrispm328p/main/sck_66.2.jpeg "sck 66.2 half-period")
+   ![sck 66.2 on scope](https://raw.githubusercontent.com/imrehorvath/avrispm328p/main/sck_66.2.jpeg "sck 66.2 half-period")
 
-**Note:** this sets a slightly more than 61 microseconds SCK half-period in the programmer. For caculation of this value, please see below.
+   **Note:** this sets a slightly more than 61 microseconds SCK half-period in the programmer. For caculation of this value, please see below.
 
-Exit `avrdude`.
+3. Exit `avrdude`.
 
-```
-q
-```
+   ```
+   q
+   ```
 
-Use `avrdude` as usual. The programmer remembers the SCK half-period duration until reset or power-cycled.
+4. Use `avrdude` as usual. The programmer remembers the SCK half-period duration until reset or power-cycled.
 
 ### SCK half-period calculation
 
