@@ -58,11 +58,11 @@ avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U lfuse:r:-:h -U 
 
 **Note:** for other uses, please refer to the manual of `avrdude`.
 
-## Set SCK programming param for slow targets (optional)
+## Set sck programming param for slow targets (optional)
 
-This firmware uses a 2 microseconds SCK half-period duration as default. This works with most recent parts with their factory default settings of using an internal 1 MHz clock. (Actually 8 MHz divided by 8)
+This firmware uses a 2 microseconds SCK half-period duration as default. This works with most recent parts with their factory default settings of using an internal 1 MHz clock.
 
-There are cases you might want to program In System a target clocked at a much slower frequency. Like a clock application running at 32.768 kHz. In that case you need to set a longer SCK half-period duration.
+There are cases, you might want to program a target -In System- clocked at much lower frequencies. (Like a clock application running at 32.768 kHz.) In such cases you need to set a longer SCK half-period duration. Otherwise you can skip this part.
 
 ### Set a longer SCK half-period duration
 
