@@ -78,7 +78,7 @@ Set the SCK half-period duration with the `sck` interactive command in `avrdude`
 sck 66.2
 ```
 
-![sck 66.2 on scope](https://github.com/imrehorvath/avrispm328p/raw/master/sck_66.2.jpeg "sck 66.2 half-period")
+![sck 66.2 on scope](https://raw.githubusercontent.com/imrehorvath/avrispm328p/main/sck_66.2.jpeg "sck 66.2 half-period")
 
 **Note:** this sets a slightly more than 61 microseconds SCK half-period in the programmer. For caculation of this value, please see below.
 
