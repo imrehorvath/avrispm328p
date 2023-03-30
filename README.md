@@ -11,10 +11,10 @@ The programmer board is assumed to be an Arduino board with an ATmega328P clocke
 
 Download the [avrispm328p.hex](https://raw.githubusercontent.com/imrehorvath/avrispm328p/main/avrispm328p.hex) file and flash it to the programmer.
 ```
-avrdude -v -P /dev/cu.usbserial-<whatever> -p m328p -c arduino -U flash:w:avrispm328p.hex:i
+avrdude -v -P /dev/cu.usbserial-A12345BA -p m328p -c arduino -U flash:w:avrispm328p.hex:i
 ```
 
-**Note:** replace `/dev/cu.usbserial-<whatever>` with wour actual device.
+**Note:** replace `/dev/cu.usbserial-A12345BA` with wour actual device.
 
 ## Program- or set fuses on your targer
 
@@ -45,15 +45,15 @@ Hook up your target AVR as usual. Common GND, Vcc, RST and the SPI (MOSI, MISO a
 Read signature, calibration and lock bytes. As target an ATtiny85 is assumed. If you have another part, make sure to change the option.
 
 ```
-avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U signature:r:-:h
-avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U calibration:r:-:h
-avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U lock:r:-:h
+avrdude -v -P /dev/cu.usbserial-A12345BA -p t85 -c stk500v1 -U signature:r:-:h
+avrdude -v -P /dev/cu.usbserial-A12345BA -p t85 -c stk500v1 -U calibration:r:-:h
+avrdude -v -P /dev/cu.usbserial-A12345BA -p t85 -c stk500v1 -U lock:r:-:h
 ```
 
 Read the fuses
 
 ```
-avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h
+avrdude -v -P /dev/cu.usbserial-A12345BA -p t85 -c stk500v1 -U lfuse:r:-:h -U hfuse:r:-:h -U efuse:r:-:h
 ```
 
 **Note:** for other uses, please refer to the manual of `avrdude`.
@@ -69,7 +69,7 @@ There are cases, you might want to program a target -In System- clocked at much 
 1. Run `avrdude` in Terminal Mode.
 
    ```
-   avrdude -v -P /dev/cu.usbserial-<whatever> -p t85 -c stk500v1 -t
+   avrdude -v -P /dev/cu.usbserial-A12345BA -p t85 -c stk500v1 -t
    ```
 
 2. Set the SCK half-period duration with the `sck` interactive command in `avrdude` Terminal Mode. (Eg. for a 32.768 kHz clocked target.)
