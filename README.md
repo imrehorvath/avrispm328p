@@ -14,7 +14,7 @@ Download the [avrispm328p.hex](https://raw.githubusercontent.com/imrehorvath/avr
 avrdude -v -P /dev/cu.usbserial-A12345BA -p m328p -c arduino -U flash:w:avrispm328p.hex:i
 ```
 
-**Note:** replace `/dev/cu.usbserial-A12345BA` with wour actual device.
+**Note:** replace `/dev/cu.usbserial-A12345BA` with your actual device.
 
 ## Program- or set fuses on your targer
 
