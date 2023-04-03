@@ -100,7 +100,7 @@ To calculate the minimum required SCK half-period from the target frequency `FOS
 sckhp = 1 ÷ IF(FOSC_t < 12000000, FOSC_t ÷ 4, FOSC_t ÷ 6) × 1000000 ÷ 2
 ```
 
-To calculate the value we need to enter as the argument to the `sck` command to achieve the desired SCK half-period duration, we can use the following formula.
+To calculate the value we need to enter as the argument to the `sck` command in `avrdude` to achieve the desired SCK half-period duration, we can use the following formula.
 
 ```
 v = ROUND(sckhp ÷ 0.9216, 1)
@@ -112,8 +112,5 @@ v = ROUND(sckhp ÷ 0.9216, 1)
 | -------: | ------: | ---: |
 | 32768    | 61.0352 | 66.2 |
 | 1000000  | 2       | 2.2  |
-| 4000000  | 0.5     | 0.5  |
-| 7372800  | 0.2713  | 0.3  |
-| 8000000  | 0.25    | 0.3  |
-| 12000000 | 0.25    | 0.3  |
-| 16000000 | 0.1875  | 0.2  |
+
+**Note:** The minimum SCK half-period duration is 1 microseconds.
