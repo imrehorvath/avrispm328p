@@ -7,7 +7,7 @@ This AVR ISP firmware turns your ATmega328P-based board (like an Arduino Nano, U
 
 ## Set up your programmer board
 
-The programmer board is assumed to be an Arduino board with an ATmega328P clocked at 16 MHz. Also it is assumed that `avrdude` is used.
+In the examples below, the programmer board is assumed to be an Arduino board with an ATmega328P clocked at 16 MHz. Also it is assumed that `avrdude` is used.
 
 Download the [avrispm328p.hex](https://raw.githubusercontent.com/imrehorvath/avrispm328p/main/avrispm328p.hex) file and flash it to the programmer.
 ```
