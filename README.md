@@ -4,6 +4,7 @@ AVR ISP (ATmega328P, Addr. auto inc., STK500v1 at 115.2 kbps)
 ## Description
 
 This AVR ISP firmware turns your ATmega328P-based board (like an Arduino Nano, Uno, etc.) into an AVR ISP with adjustable SCK half-period, using the STK500v1 protocol.
+(The pin assignment matches the already established practice, so this firmware can be used with existing rigs.)
 
 ## Set up your programmer board
 
@@ -20,21 +21,21 @@ avrdude -v -P /dev/cu.usbserial-A12345BA -p m328p -c arduino -U flash:w:avrispm3
 
 Hook up your target AVR as usual. Common GND, Vcc, RST and the SPI (MOSI, MISO and SCK). Optionally connect the status indicator LEDs through current limiting series resistors.
 
-### Reset and SPI
+### Programmer Indicator LED Pin Assignments
+
+| Indicator LED                   | ATmega328P Pin | Arduino Nano Pin |
+| ------------------------------- | -------------- | ---------------- |
+| RED (Error occured)             | PB0            | D8               |
+| GREEN (Programming Mode active) | PB1            | D9               |
+
+### ICSP Pin Assignments
 
 | Function | ATmega328P Pin | Arduino Nano Pin |
 | -------- | -------------- | ---------------- |
-| RST      | PB0            | D8               |
+| RST      | PB2            | D10              |
 | MOSI     | PB3            | D11              |
 | MISO     | PB4            | D12              |
 | SCK      | PB5            | D13              |
-
-### Programmer LEDs
-
-| Indicator LED               | ATmega328P Pin | Arduino Nano Pin |
-| --------------------------- | -------------- | ---------------- |
-| In Programming Mode (Green) | PD7            | D7               |
-| Error Indication (Red)      | PD6            | D6               |
 
 **Note:** make sure you connect a 10 uF capacitor between the RESET and GND pins of your Arduino board when applicable to prevent it from going into the bootloader when you want to program your target.
 

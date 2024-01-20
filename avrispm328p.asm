@@ -1,7 +1,7 @@
 ;******************************************************************************
 ;* Title        : AVR ISP (ATmega328P, Addr. auto inc., STK500v1 at 115.2 kbps)
 ;* Version      : 1.0
-;* Last updated : Mar 21 2023 
+;* Last updated : Jan 20 2024 
 ;* Target       : ATmega328P clocked at 16 MHz
 ;* File         : avrispm328p.asm 
 ;* Author       : Imre Horvath <imi.horvath [at] gmail [dot] com>
@@ -9,6 +9,8 @@
 ;* Description  : This AVR ISP firmware turns your ATmega328P-based board (like
 ;*                an Arduino Nano, Uno, etc.) into an AVR ISP with adjus-
 ;*                table SCK half-period, using the STK500v1 protocol.
+;*                (The pin assignment matches the already established practice,
+;*                so this firmware can be used with existing rigs.)
 ;******************************************************************************
 
 .nolist
@@ -21,18 +23,23 @@
 .equ SWMAJ =  1
 .equ SWMIN = 18
 
-;**** Programmer to Target Pin Assignments ****
+;**** Input-, Port- and Data Direction Assignments ****
 
-.equ RST  = PB0
+.equ ICSP_PIN  = PINB
+.equ ICSP_PORT = PORTB
+.equ ICSP_DDR  = DDRB
 
-.equ MOSI = PB3
-.equ MISO = PB4
-.equ SCK  = PB5
+.equ LED_PORT = PORTB
+.equ LED_DDR  = DDRB
 
-;**** Status-indicator LED Pin Assignments ****
+;**** Bit Assignments ****
 
-.equ PM_LED  = PD7
-.equ ERR_LED = PD6
+.equ RED   = PB0
+.equ GREEN = PB1
+.equ RST   = PB2
+.equ MOSI  = PB3
+.equ MISO  = PB4
+.equ SCK   = PB5
 
 ;**** STK500v1 Constants ****
 
@@ -87,13 +94,13 @@
 .def sck_durat  = r12           ; SCK half-period duration in microseconds
 .def bit_cnt    = r13
 
-.def temp1      = r16
+.def temp       = r16
 .def temp2      = r17
 .def temp3      = r18
 .def u_data     = r19           ; USART data byte
 .def s_data     = r20           ; SPI data byte
 .def status     = r21           ; Programmer status (see above)
-.def stash1     = r22
+.def stash      = r22
 .def cnt        = r23
 .def addrl      = r24
 .def addrh      = r25
@@ -132,7 +139,7 @@ buff:           .byte 256
 
 .cseg
 .org 0
-        rjmp    RESET
+        rjmp  RESET
 
 ;******************************************************************************
 ;*
@@ -140,20 +147,20 @@ buff:           .byte 256
 ;*	delay
 ;*
 ;* DESCRIPTION
-;*	 Delay for temp1 x 1 milliseconds at 16 MHz.
+;*	 Delay for temp x 1 milliseconds at 16 MHz.
 ;*
 ;******************************************************************************
 
 delay:  
-        ldi     temp2, low((16000000/1000)/5)
-        ldi     temp3, high((16000000/1000)/5)
+        ldi   temp2, low((16000000/1000)/5)
+        ldi   temp3, high((16000000/1000)/5)
 d_5_cycles:
-        subi    temp2, 1
-        sbci    temp3, 0
+        subi  temp2, 1
+        sbci  temp3, 0
         nop
-        brne    d_5_cycles
-        dec     temp1
-        brne    delay
+        brne  d_5_cycles
+        dec   temp
+        brne  delay
         ret
 
 ;******************************************************************************
@@ -162,33 +169,33 @@ d_5_cycles:
 ;*	delay_us
 ;*
 ;* DESCRIPTION
-;*	 Delay for temp1 x 1 microseconds at 16 MHz.
+;*	 Delay for temp x 1 microseconds at 16 MHz.
 ;*
 ;******************************************************************************
 
 delay_us:
-        cpi     temp1, 1
-        breq    du_7_plus_9_cycles
-        dec     temp1
-        ldi     temp2, 16
-        mul     temp1, temp2
-        rjmp    PC+1
+        cpi   temp, 1
+        breq  du_7_plus_9_cycles
+        dec   temp
+        ldi   temp2, 16
+        mul   temp, temp2
+        rjmp  PC+1
 du_16_cycles:
-        ldi     temp2, 16
-        ldi     temp3, 0
-        sub     r0, temp2
-        sbc     r1, temp3
-        rjmp    PC+1
-        rjmp    PC+1
-        rjmp    PC+1
-        rjmp    PC+1
-        rjmp    PC+1
-        brne    du_16_cycles
+        ldi   temp2, 16
+        ldi   temp3, 0
+        sub   r0, temp2
+        sbc   r1, temp3
+        rjmp  PC+1
+        rjmp  PC+1
+        rjmp  PC+1
+        rjmp  PC+1
+        rjmp  PC+1
+        brne  du_16_cycles
         nop
         ret
 du_7_plus_9_cycles:
-        rjmp    PC+1
-        rjmp    PC+1
+        rjmp  PC+1
+        rjmp  PC+1
         nop
         ret
 
@@ -205,18 +212,18 @@ du_7_plus_9_cycles:
 ;******************************************************************************
 
 u_init:
-        ldi     temp1, 0x00                     ; Set up 115.2 kbps
-        sts     UBRR0H, temp1                   ;
-        ldi     temp1, 0x10                     ;
-        sts     UBRR0L, temp1                   ;
-        ldi     temp1, (1<<U2X0)                ;
-        sts     UCSR0A, temp1                   ;
+        ldi   temp, 0x00                     ; Set up 115.2 kbps
+        sts   UBRR0H, temp                   ;
+        ldi   temp, 0x10                     ;
+        sts   UBRR0L, temp                   ;
+        ldi   temp, (1<<U2X0)                ;
+        sts   UCSR0A, temp                   ;
 
-        ldi     temp1, (1<<RXEN0)|(1<<TXEN0)    ; Enable RX and TX
-        sts     UCSR0B, temp1                   ;
+        ldi   temp, (1<<RXEN0)|(1<<TXEN0)    ; Enable RX and TX
+        sts   UCSR0B, temp                   ;
 
-        ldi     temp1, (3<<UCSZ00)              ; Frame format: 8N1
-        sts     UCSR0C, temp1                   ;
+        ldi   temp, (3<<UCSZ00)              ; Frame format: 8N1
+        sts   UCSR0C, temp                   ;
         ret
 
 ;******************************************************************************
@@ -230,10 +237,10 @@ u_init:
 ;******************************************************************************
 
 getc:
-        lds     temp1, UCSR0A   ; Wait for the data to be received
-        sbrs    temp1, RXC0     ;
-        rjmp    getc            ;
-        lds     u_data, UDR0    ; Put the received data byte into u_data
+        lds   temp, UCSR0A   ; Wait for the data to be received
+        sbrs  temp, RXC0     ;
+        rjmp  getc           ;
+        lds   u_data, UDR0   ; Put the received data byte into u_data
         ret
 
 ;******************************************************************************
@@ -247,10 +254,10 @@ getc:
 ;******************************************************************************
 
 putc:
-        lds     temp1, UCSR0A   ; Wait until the transmit buffer is empty
-        sbrs    temp1, UDRE0    ;
-        rjmp    putc            ;
-        sts     UDR0, u_data    ; Transmit the data byte in u_data
+        lds   temp, UCSR0A   ; Wait until the transmit buffer is empty
+        sbrs  temp, UDRE0    ;
+        rjmp  putc           ;
+        sts   UDR0, u_data   ; Transmit the data byte in u_data
         ret
 
 ;******************************************************************************
@@ -264,13 +271,13 @@ putc:
 ;******************************************************************************
 
 put_string:
-        lpm                     ; Load string char from program memory
-        tst     r0
-        breq    ps_ret          ; Check if end of string reached
-        mov     u_data, r0
-        rcall   putc            ; putc char loaded from the program memory
-        adiw    ZL, 1           ; increment Z
-        rjmp    put_string      ; loop over the entire string
+        lpm                   ; Load string char from program memory
+        tst   r0
+        breq  ps_ret          ; Check if end of string reached
+        mov   u_data, r0
+        rcall putc            ; putc char loaded from the program memory
+        adiw  ZL, 1           ; increment Z
+        rjmp  put_string      ; loop over the entire string
 ps_ret:
         ret
 
@@ -285,13 +292,13 @@ ps_ret:
 ;******************************************************************************
 
 s_init:
-        in      temp1, PORTB                    ; Set up SCK and MOSI as LOW
-        cbr     temp1, (1<<SCK)|(1<<MOSI)       ;
-        out     PORTB, temp1                    ;
+        in    temp, ICSP_PORT                ; Set up SCK and MOSI as LOW
+        cbr   temp, (1<<SCK)|(1<<MOSI)       ;
+        out   ICSP_PORT, temp                ;
 
-        in      temp1, DDRB                     ; Set SCK and MOSI as output
-        sbr     temp1, (1<<SCK)|(1<<MOSI)       ;
-        out     DDRB, temp1                     ;
+        in    temp, ICSP_DDR                 ; Set SCK and MOSI as output
+        sbr   temp, (1<<SCK)|(1<<MOSI)       ;
+        out   ICSP_DDR, temp                 ;
         ret
 
 ;******************************************************************************
@@ -305,13 +312,13 @@ s_init:
 ;******************************************************************************
 
 s_deinit:
-        in      temp1, DDRB                     ; Set SCK and MOSI as input
-        cbr     temp1, (1<<SCK)|(1<<MOSI)       ;
-        out     DDRB, temp1                     ;
+        in    temp, ICSP_DDR                 ; Set SCK and MOSI as input
+        cbr   temp, (1<<SCK)|(1<<MOSI)       ;
+        out   ICSP_DDR, temp                 ;
 
-        in      temp1, PORTB                    ; Set no pullups for SCK, MOSI
-        cbr     temp1, (1<<SCK)|(1<<MOSI)       ;
-        out     PORTB, temp1                    ;
+        in    temp, ICSP_PORT                ; Set no pullups for SCK, MOSI
+        cbr   temp, (1<<SCK)|(1<<MOSI)       ;
+        out   ICSP_PORT, temp                ;
         ret
 
 ;******************************************************************************
@@ -326,31 +333,31 @@ s_deinit:
 ;******************************************************************************
 
 s_transmit:
-        ldi     temp1, 8
-        mov     bit_cnt, temp1
+        ldi   temp, 8
+        mov   bit_cnt, temp
 st_loop:
-        lsl     s_data
+        lsl   s_data
 
-        brcc    st_mosi_low             ; MOSI
-        sbi     PORTB, MOSI             ;
-        rjmp    st_mosi_setup_done      ;
-st_mosi_low:                            ;
-        cbi     PORTB, MOSI             ;
-        rjmp    st_mosi_setup_done      ;
+        brcc  st_mosi_low             ; MOSI
+        sbi   ICSP_PORT, MOSI         ;
+        rjmp  st_mosi_setup_done      ;
+st_mosi_low:                          ;
+        cbi   ICSP_PORT, MOSI         ;
+        rjmp  st_mosi_setup_done      ;
 
 st_mosi_setup_done:
-        sbic    PINB, MISO              ; MISO
-        inc     s_data                  ;
+        sbic  ICSP_PIN, MISO          ; MISO
+        inc   s_data                  ;
 
-        sbi     PORTB, SCK              ; SCK
-        mov     temp1, sck_durat        ;
-        rcall   delay_us                ;
-        cbi     PORTB, SCK              ;
-        mov     temp1, sck_durat        ;
-        rcall   delay_us                ;
+        sbi   ICSP_PORT, SCK          ; SCK
+        mov   temp, sck_durat         ;
+        rcall delay_us                ;
+        cbi   ICSP_PORT, SCK          ;
+        mov   temp, sck_durat         ;
+        rcall delay_us                ;
 
-        dec     bit_cnt
-        brne    st_loop
+        dec   bit_cnt
+        brne  st_loop
         ret
 
 ;******************************************************************************
@@ -364,12 +371,12 @@ st_mosi_setup_done:
 ;******************************************************************************
 
 drive_rst_pin:
-        sbrs    status, STAT_RSTAH
-        cbi     PORTB, RST              ; Set RST LOW, when target is act. low
-        sbrc    status, STAT_RSTAH
-        sbi     PORTB, RST              ; Set RST HIGH, when target is act. hi
+        sbrs  status, STAT_RSTAH
+        cbi   ICSP_PORT, RST          ; Set RST LOW, when target is act. low
+        sbrc  status, STAT_RSTAH
+        sbi   ICSP_PORT, RST          ; Set RST HIGH, when target is act. hi
 
-        sbi     DDRB, RST               ; Set RST as output
+        sbi   ICSP_DDR, RST           ; Set RST as output
         ret
 
 ;******************************************************************************
@@ -383,8 +390,8 @@ drive_rst_pin:
 ;******************************************************************************
 
 leave_rst_pin:
-        cbi     DDRB, RST               ; Set RST as input
-        cbi     PORTB, RST              ; Set no pullup
+        cbi   ICSP_DDR, RST           ; Set RST as input
+        cbi   ICSP_PORT, RST          ; Set no pullup
         ret
 
 ;******************************************************************************
@@ -398,10 +405,10 @@ leave_rst_pin:
 ;******************************************************************************
 
 reset_on:
-        sbrs    status, STAT_RSTAH
-        cbi     PORTB, RST              ; Set RST LOW, when target is act. low
-        sbrc    status, STAT_RSTAH
-        sbi     PORTB, RST              ; Set RST HIGH, when target is act. hi
+        sbrs  status, STAT_RSTAH
+        cbi   ICSP_PORT, RST          ; Set RST LOW, when target is act. low
+        sbrc  status, STAT_RSTAH
+        sbi   ICSP_PORT, RST          ; Set RST HIGH, when target is act. hi
         ret
 
 ;******************************************************************************
@@ -415,10 +422,10 @@ reset_on:
 ;******************************************************************************
 
 reset_off:
-        sbrs    status, STAT_RSTAH
-        sbi     PORTB, RST              ; Set RST HIGH, when target is act. low
-        sbrc    status, STAT_RSTAH
-        cbi     PORTB, RST              ; Set RST LOW, when target is act. high
+        sbrs  status, STAT_RSTAH
+        sbi   ICSP_PORT, RST          ; Set RST HIGH, when target is act. low
+        sbrc  status, STAT_RSTAH
+        cbi   ICSP_PORT, RST          ; Set RST LOW, when target is act. high
         ret
 
 ;******************************************************************************
@@ -433,10 +440,10 @@ reset_off:
 ;******************************************************************************
 
 usart_to_sram:
-        rcall   getc
-        st      Y+, u_data
-        dec     cnt 
-        brne    usart_to_sram
+        rcall getc
+        st    Y+, u_data
+        dec   cnt 
+        brne  usart_to_sram
         ret
 
 ;******************************************************************************
@@ -451,10 +458,10 @@ usart_to_sram:
 ;******************************************************************************
 
 sram_copy:
-        ld      ramtemp, Z+
-        st      Y+, ramtemp
-        dec     cnt 
-        brne    sram_copy
+        ld    ramtemp, Z+
+        st    Y+, ramtemp
+        dec   cnt 
+        brne  sram_copy
         ret
 
 ;******************************************************************************
@@ -468,13 +475,13 @@ sram_copy:
 ;******************************************************************************
 
 deter_rst_level:
-        lds     temp1, devicecode
-        cpi     temp1, 0xE0
-        brsh    drl_act_high
-        cbr     status, (1<<STAT_RSTAH)
-        rjmp    drl_done
+        lds   temp, devicecode
+        cpi   temp, 0xE0
+        brsh  drl_act_high
+        cbr   status, (1<<STAT_RSTAH)
+        rjmp  drl_done
 drl_act_high:
-        sbr     status, (1<<STAT_RSTAH)
+        sbr   status, (1<<STAT_RSTAH)
 drl_done:
         ret
 
@@ -489,16 +496,16 @@ drl_done:
 ;******************************************************************************
 
 calc_page_addr_mask:
-        lds     temp2, pagesizehigh
-        lds     temp1, pagesizelow
-        subi    temp1, 1
-        sbci    temp2, 0                ; -1
-        lsr     temp2
-        ror     temp1                   ; Shift to the right
-        com     temp2
-        com     temp1                   ; Flip all bits
-        mov     page_maskh, temp2
-        mov     page_maskl, temp1
+        lds   temp2, pagesizehigh
+        lds   temp, pagesizelow
+        subi  temp, 1
+        sbci  temp2, 0                ; -1
+        lsr   temp2
+        ror   temp                    ; Shift to the right
+        com   temp2
+        com   temp                    ; Flip all bits
+        mov   page_maskh, temp2
+        mov   page_maskl, temp
         ret
 
 ;******************************************************************************
@@ -512,10 +519,10 @@ calc_page_addr_mask:
 ;******************************************************************************
 
 current_page:
-        mov     curr_pageh, addrh
-        and     curr_pageh, page_maskh
-        mov     curr_pagel, addrl
-        and     curr_pagel, page_maskl
+        mov   curr_pageh, addrh
+        and   curr_pageh, page_maskh
+        mov   curr_pagel, addrl
+        and   curr_pagel, page_maskl
         ret
 
 ;******************************************************************************
@@ -529,16 +536,16 @@ current_page:
 ;******************************************************************************
 
 poll_rdybsy:
-        ldi     s_data, 0xF0    ; Poll RDY/BSY
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        sbrc    s_data, 0       ; Bit 0 = 1 indicates BSY
-        rjmp    poll_rdybsy
+        ldi   s_data, 0xF0    ; Poll RDY/BSY
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        sbrc  s_data, 0       ; Bit 0 = 1 indicates BSY
+        rjmp  poll_rdybsy
         ret
 
 ;******************************************************************************
@@ -552,15 +559,15 @@ poll_rdybsy:
 ;******************************************************************************
 
 commit_page:
-        ldi     s_data, 0x4C    ; Commit prev-page when page-change
-        rcall   s_transmit
-        mov     s_data, prev_pageh
-        rcall   s_transmit
-        mov     s_data, prev_pagel
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        rcall   poll_rdybsy     ; Poll until the write is completed
+        ldi   s_data, 0x4C    ; Commit prev-page when page-change
+        rcall s_transmit
+        mov   s_data, prev_pageh
+        rcall s_transmit
+        mov   s_data, prev_pagel
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        rcall poll_rdybsy     ; Poll until the write is completed
         ret
 
 ;******************************************************************************
@@ -578,8 +585,8 @@ commit_page:
 ;******************************************************************************
 
 init_params:
-        ldi     temp1, 2                ; Set a 2 microseconds SCK half-period
-        mov     sck_durat, temp1        ; duration as default.
+        ldi   temp, 2                ; Set a 2 microseconds SCK half-period
+        mov   sck_durat, temp        ; duration as default.
         ret
 
 ;******************************************************************************
@@ -593,11 +600,11 @@ init_params:
 ;******************************************************************************
 
 init_LEDs:
-        cbi     PORTD, PM_LED   ; Set LOW signal level for PM LED
-        sbi     DDRD, PM_LED    ; Set it as output
+        cbi   LED_PORT, GREEN   ; Set LOW signal level for PM LED
+        sbi   LED_DDR, GREEN    ; Set it as output
 
-        cbi     PORTD, ERR_LED  ; Set LOW signal level for ERR LED
-        sbi     DDRD, ERR_LED   ; Set it as output
+        cbi   LED_PORT, RED     ; Set LOW signal level for ERR LED
+        sbi   LED_DDR, RED      ; Set it as output
         ret
 
 ;******************************************************************************
@@ -611,15 +618,15 @@ init_LEDs:
 ;******************************************************************************
 
 update_LEDs:
-        sbrs    status, STAT_PM
-        cbi     PORTD, PM_LED           ; Turn off the PM LED, when flag is 0
-        sbrc    status, STAT_PM
-        sbi     PORTD, PM_LED           ; Turn on the PM LED, when flag is 1
+        sbrs  status, STAT_PM
+        cbi   LED_PORT, GREEN   ; Turn off the PM LED, when flag is 0
+        sbrc  status, STAT_PM
+        sbi   LED_PORT, GREEN   ; Turn on the PM LED, when flag is 1
 
-        sbrs    status, STAT_ERR
-        cbi     PORTD, ERR_LED          ; Turn off the ERR LED, when flag is 0
-        sbrc    status, STAT_ERR
-        sbi     PORTD, ERR_LED          ; Turn on the ERR LED, when flag is 1
+        sbrs  status, STAT_ERR
+        cbi   LED_PORT, RED     ; Turn off the ERR LED, when flag is 0
+        sbrc  status, STAT_ERR
+        sbi   LED_PORT, RED     ; Turn on the ERR LED, when flag is 1
         ret
 
 ;******************************************************************************
@@ -632,15 +639,15 @@ update_LEDs:
 ;******************************************************************************
 
 RESET:
-        ldi     temp1, high(RAMEND)
-        out     SPH, temp1
-        ldi     temp1, low(RAMEND)
-        out     SPL, temp1
+        ldi   temp, high(RAMEND)
+        out   SPH, temp
+        ldi   temp, low(RAMEND)
+        out   SPL, temp
 
-        clr     status
-        rcall   init_params
-        rcall   init_LEDs
-        rcall   u_init
+        clr   status
+        rcall init_params
+        rcall init_LEDs
+        rcall u_init
 
 ;******************************************************************************
 ;*
@@ -655,579 +662,579 @@ waitcmd:
 
 ;**** Update Status Indicator LEDs ****
 
-        rcall   update_LEDs
+        rcall update_LEDs
 
 ;**** Cmnd_STK_GET_SYNC ****
 
-        rcall   getc
+        rcall getc
 
-        cpi     u_data, Cmnd_STK_GET_SYNC
-        brne    w0
+        cpi   u_data, Cmnd_STK_GET_SYNC
+        brne  w0
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        cbr     status, (1<<STAT_ERR)   ; Clear error status
-        rjmp    put_insync_ok
+        cbr   status, (1<<STAT_ERR)   ; Clear error status
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_GET_SIGN_ON ****
 
 w0:
-        cpi     u_data, Cmnd_STK_GET_SIGN_ON
-        brne    w1
+        cpi   u_data, Cmnd_STK_GET_SIGN_ON
+        brne  w1
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
-        ldi     ZH, high(sign_on_msg*2)
-        ldi     ZL, low(sign_on_msg*2)
-        rcall   put_string
+        ldi   ZH, high(sign_on_msg*2)
+        ldi   ZL, low(sign_on_msg*2)
+        rcall put_string
 
-        rjmp    put_ok
+        rjmp  put_ok
 
 ;**** Cmnd_STK_SET_PARAMETER ****
 
 w1:
-        cpi     u_data, Cmnd_STK_SET_PARAMETER
-        brne    w2
+        cpi   u_data, Cmnd_STK_SET_PARAMETER
+        brne  w2
 
-        rcall   getc
-        mov     stash1, u_data          ; parameter
-        rcall   getc
-        mov     stash2, u_data          ; value
+        rcall getc
+        mov   stash, u_data          ; parameter
+        rcall getc
+        mov   stash2, u_data          ; value
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        cpi     stash1, Parm_STK_SCK_DURATION
-        brne    sp_failed
-        mov     sck_durat, stash2       ; Set sck half-period duration
-        rjmp    put_insync_ok
+        cpi   stash, Parm_STK_SCK_DURATION
+        brne  sp_failed
+        mov   sck_durat, stash2       ; Set sck half-period duration
+        rjmp  put_insync_ok
 
 sp_failed:
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
-        mov     u_data, stash1          ; parameter
-        rcall   putc
-        rjmp    put_failed      ; Attempt to set unsupported params is a fail
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
+        mov   u_data, stash          ; parameter
+        rcall putc
+        rjmp  put_failed      ; Attempt to set unsupported params is a fail
 
 ;**** Cmnd_STK_GET_PARAMETER ****
 
 w2:
-        cpi     u_data, Cmnd_STK_GET_PARAMETER
-        brne    w3
+        cpi   u_data, Cmnd_STK_GET_PARAMETER
+        brne  w3
 
-        rcall   getc
-        mov     stash1, u_data          ; parameter
+        rcall getc
+        mov   stash, u_data          ; parameter
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
-        cpi     stash1, Parm_STK_HW_VER
-        brne    gp_not_hwver
-        ldi     u_data, HWVER
-        rjmp    gp_put
+        cpi   stash, Parm_STK_HW_VER
+        brne  gp_not_hwver
+        ldi   u_data, HWVER
+        rjmp  gp_put
 gp_not_hwver:
-        cpi     stash1, Parm_STK_SW_MAJOR
-        brne    gp_not_swmajor
-        ldi     u_data, SWMAJ
-        rjmp    gp_put
+        cpi   stash, Parm_STK_SW_MAJOR
+        brne  gp_not_swmajor
+        ldi   u_data, SWMAJ
+        rjmp  gp_put
 gp_not_swmajor:
-        cpi     stash1, Parm_STK_SW_MINOR
-        brne    gp_not_swminor
-        ldi     u_data, SWMIN
-        rjmp    gp_put
+        cpi   stash, Parm_STK_SW_MINOR
+        brne  gp_not_swminor
+        ldi   u_data, SWMIN
+        rjmp  gp_put
 gp_not_swminor:
-        cpi     stash1, Parm_STK_SCK_DURATION
-        brne    gp_not_sckdurat
-        mov     u_data, sck_durat       ; Get sck half-period duration
-        rjmp    gp_put
+        cpi   stash, Parm_STK_SCK_DURATION
+        brne  gp_not_sckdurat
+        mov   u_data, sck_durat       ; Get sck half-period duration
+        rjmp  gp_put
 gp_not_sckdurat:
-        cpi     stash1, Parm_STK_PROGMODE
-        brne    gp_default
-        ldi     u_data, 'S'             ; Serial programming mode
-        rjmp    gp_put
+        cpi   stash, Parm_STK_PROGMODE
+        brne  gp_default
+        ldi   u_data, 'S'             ; Serial programming mode
+        rjmp  gp_put
 
 gp_default:
-        ldi     u_data, 0               ; All params defaults to 0
+        ldi   u_data, 0               ; All params defaults to 0
 gp_put:
-        rcall   putc
-        rjmp    put_ok
+        rcall putc
+        rjmp  put_ok
 
 ;**** Cmnd_STK_SET_DEVICE ****
 
 w3:
-        cpi     u_data, Cmnd_STK_SET_DEVICE
-        brne    w4
+        cpi   u_data, Cmnd_STK_SET_DEVICE
+        brne  w4
 
-        ldi     YH, high(buff)
-        ldi     YL, low(buff)
-        ldi     cnt, 20
-        rcall   usart_to_sram   ; Stash data until protocol is verified
+        ldi   YH, high(buff)
+        ldi   YL, low(buff)
+        ldi   cnt, 20
+        rcall usart_to_sram   ; Stash data until protocol is verified
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        ldi     YH, high(devparams)
-        ldi     YL, low(devparams)
-        ldi     ZH, high(buff)
-        ldi     ZL, low(buff)
-        ldi     cnt, 20
-        rcall   sram_copy       ; Copy device parameters into place
+        ldi   YH, high(devparams)
+        ldi   YL, low(devparams)
+        ldi   ZH, high(buff)
+        ldi   ZL, low(buff)
+        ldi   cnt, 20
+        rcall sram_copy       ; Copy device parameters into place
 
-        rcall   deter_rst_level         ; Determine the target RST level
-        rcall   calc_page_addr_mask     ; Calculate the address mask for pages
+        rcall deter_rst_level         ; Determine the target RST level
+        rcall calc_page_addr_mask     ; Calculate the address mask for pages
 
-        sbr     status, (1<<STAT_PS)    ; Set status. Params are set.
-        rjmp    put_insync_ok
+        sbr   status, (1<<STAT_PS)    ; Set status. Params are set.
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_SET_DEVICE_EXT ****
 
 w4:
-        cpi     u_data, Cmnd_STK_SET_DEVICE_EXT
-        brne    w5
+        cpi   u_data, Cmnd_STK_SET_DEVICE_EXT
+        brne  w5
 
-        rcall   getc
-        mov     cnt, u_data     ; commandsize
-        dec     cnt
+        rcall getc
+        mov   cnt, u_data     ; commandsize
+        dec   cnt
 sde_parms:
-        rcall   getc            ; ignore ext parm
-        dec     cnt
-        brne    sde_parms
+        rcall getc            ; ignore ext parm
+        dec   cnt
+        brne  sde_parms
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
-        rjmp    put_insync_ok
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_ENTER_PROGMODE ****
 
 w5:
-        cpi     u_data, Cmnd_STK_ENTER_PROGMODE
-        brne    w6
+        cpi   u_data, Cmnd_STK_ENTER_PROGMODE
+        brne  w6
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        sbrs    status, STAT_PS
-        rjmp    put_insync_nodevice     ; Fail if parameters are not set
+        sbrs  status, STAT_PS
+        rjmp  put_insync_nodevice     ; Fail if parameters are not set
 
-        rcall   drive_rst_pin   ; Control RST pin, and reset target
-        rcall   s_init          ; Initialize SPI Master (SCK is set LOW)
+        rcall drive_rst_pin   ; Control RST pin, and reset target
+        rcall s_init          ; Initialize SPI Master (SCK is set LOW)
 
-        ldi     cnt, 8          ; Retry count
+        ldi   cnt, 8          ; Retry count
 ep_pluse_reset:
-        rcall   reset_off       ; Make a positive pulse on RST
-        ldi     temp1, 100
-        rcall   delay_us
-        rcall   reset_on
-        ldi     temp1, 20
-        rcall   delay
+        rcall reset_off       ; Make a positive pulse on RST
+        ldi   temp, 100
+        rcall delay_us
+        rcall reset_on
+        ldi   temp, 20
+        rcall delay
 
-        ldi     s_data, 0xAC    ; Issue the command
-        rcall   s_transmit
-        ldi     s_data, 0x53
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        mov     stash1, s_data  ; Stash received byte for sync-check
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0xAC    ; Issue the command
+        rcall s_transmit
+        ldi   s_data, 0x53
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        mov   stash, s_data  ; Stash received byte for sync-check
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        cpi     stash1, 0x53
-        breq    ep_insync       ; If we received 0x53 back, then we are in sync
-        dec     cnt 
-        brne    ep_pluse_reset  ; Otherwise loop, and try again
+        cpi   stash, 0x53
+        breq  ep_insync       ; If we received 0x53 back, then we are in sync
+        dec   cnt 
+        brne  ep_pluse_reset  ; Otherwise loop, and try again
 
 ep_insync:
-        sbr     status, (1<<STAT_PM)    ; Set status: In Programming Mode
-        rjmp    put_insync_ok
+        sbr   status, (1<<STAT_PM)    ; Set status: In Programming Mode
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_LEAVE_PROGMODE ****
 
 w6:
-        cpi     u_data, Cmnd_STK_LEAVE_PROGMODE
-        brne    w7
+        cpi   u_data, Cmnd_STK_LEAVE_PROGMODE
+        brne  w7
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        rcall   s_deinit                ; Let go of the SPI interface lines
-        rcall   reset_off               ; Allow target to run
-        rcall   leave_rst_pin           ; Let go of the RST pin
+        rcall s_deinit                ; Let go of the SPI interface lines
+        rcall reset_off               ; Allow target to run
+        rcall leave_rst_pin           ; Let go of the RST pin
 
-        cbr     status, (1<<STAT_PM)|(1<<STAT_ERR)     ; Update status
-        rjmp    put_insync_ok
+        cbr   status, (1<<STAT_PM)|(1<<STAT_ERR)     ; Update status
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_LOAD_ADDRESS ****
 
 w7:
-        cpi     u_data, Cmnd_STK_LOAD_ADDRESS
-        brne    w8
+        cpi   u_data, Cmnd_STK_LOAD_ADDRESS
+        brne  w8
 
-        rcall   getc
-        mov     stash1, u_data          ; addr_low
-        rcall   getc
-        mov     stash2, u_data          ; addr_high
+        rcall getc
+        mov   stash, u_data           ; addr_low
+        rcall getc
+        mov   stash2, u_data          ; addr_high
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        mov     addrl, stash1
-        mov     addrh, stash2
+        mov   addrl, stash
+        mov   addrh, stash2
 
-        rjmp    put_insync_ok
+        rjmp  put_insync_ok
 
 ;**** Cmnd_STK_UNIVERSAL ****
 
 w8:
-        cpi     u_data, Cmnd_STK_UNIVERSAL
-        brne    w9
+        cpi   u_data, Cmnd_STK_UNIVERSAL
+        brne  w9
 
-        rcall   getc
-        mov     stash1, u_data
-        rcall   getc
-        mov     stash2, u_data
-        rcall   getc
-        mov     stash3, u_data
-        rcall   getc
-        mov     stash4, u_data
+        rcall getc
+        mov   stash, u_data
+        rcall getc
+        mov   stash2, u_data
+        rcall getc
+        mov   stash3, u_data
+        rcall getc
+        mov   stash4, u_data
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        mov     s_data, stash1
-        rcall   s_transmit
-        mov     s_data, stash2
-        rcall   s_transmit
-        mov     s_data, stash3
-        rcall   s_transmit
-        mov     s_data, stash4
-        rcall   s_transmit
+        mov   s_data, stash
+        rcall s_transmit
+        mov   s_data, stash2
+        rcall s_transmit
+        mov   s_data, stash3
+        rcall s_transmit
+        mov   s_data, stash4
+        rcall s_transmit
 
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
-        mov     u_data, s_data
-        rcall   putc
-        rjmp    put_ok
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
+        mov   u_data, s_data
+        rcall putc
+        rjmp  put_ok
 
 ;**** Cmnd_STK_PROG_PAGE ****
 
 w9:
-        ldi     temp1, Cmnd_STK_PROG_PAGE
-        cpse    u_data, temp1
-        rjmp    w10
+        ldi   temp, Cmnd_STK_PROG_PAGE
+        cpse  u_data, temp
+        rjmp  w10
 
-        rcall   getc
-        mov     stash3, u_data  ; bytes_high
-        rcall   getc
-        mov     stash2, u_data  ; bytes_low
-        rcall   getc
-        mov     stash1, u_data  ; memtype
+        rcall getc
+        mov   stash3, u_data  ; bytes_high
+        rcall getc
+        mov   stash2, u_data  ; bytes_low
+        rcall getc
+        mov   stash, u_data   ; memtype
 
-        ldi     YH, high(buff)
-        ldi     YL, low(buff)
-        mov     cnt, stash2     ; This impl. handles all cases by bytes_low
-        rcall   usart_to_sram   ; Fill buff with data bytes
+        ldi   YH, high(buff)
+        ldi   YL, low(buff)
+        mov   cnt, stash2     ; This impl. handles all cases by bytes_low
+        rcall usart_to_sram   ; Fill buff with data bytes
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        ldi     ZH, high(buff)  ; Set pointer to buffer for reading
-        ldi     ZL, low(buff)   ;
+        ldi   ZH, high(buff)  ; Set pointer to buffer for reading
+        ldi   ZL, low(buff)   ;
 
-        mov     cnt, stash2     ; Set available bytes for programming
+        mov   cnt, stash2     ; Set available bytes for programming
 
-        cpi     stash1, 'F'
-        breq    pp_flash        ; Flash is to be programmed
-        cpi     stash1, 'E'
-        breq    pp_eeprom       ; EEPROM is to be programmed
-        rjmp    put_failed      ; Undefined mem. type (protocol error)
+        cpi   stash, 'F'
+        breq  pp_flash        ; Flash is to be programmed
+        cpi   stash, 'E'
+        breq  pp_eeprom       ; EEPROM is to be programmed
+        rjmp  put_failed      ; Undefined mem. type (protocol error)
 
 pp_flash:
-        rcall   current_page
-        movw    prev_pagel, curr_pagel  ; Initialize prev-page as curr-page
+        rcall current_page
+        movw  prev_pagel, curr_pagel  ; Initialize prev-page as curr-page
 
 pp_flash_pages:
-        ldi     s_data, 0x40    ; Load program memory page, low byte
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ld      s_data, Z+
-        rcall   s_transmit      ; Low byte of the word loaded first
+        ldi   s_data, 0x40    ; Load program memory page, low byte
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ld    s_data, Z+
+        rcall s_transmit      ; Low byte of the word loaded first
 
-        ldi     s_data, 0x48    ; Load program memory page, high byte
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ld      s_data, Z+
-        rcall   s_transmit      ; High byte of the word loaded second
+        ldi   s_data, 0x48    ; Load program memory page, high byte
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ld    s_data, Z+
+        rcall s_transmit      ; High byte of the word loaded second
 
-        adiw    addrl, 1        ; Increment word address before page-check
+        adiw  addrl, 1        ; Increment word address before page-check
  
-        rcall   current_page    ; Check whether we need to commit the page
-        cp      curr_pagel, prev_pagel  ; before the next word load.
-        cpc     curr_pageh, prev_pageh
-        breq    pp_flash_same_page      ; Next load goes into the same page
+        rcall current_page    ; Check whether we need to commit the page
+        cp    curr_pagel, prev_pagel  ; before the next word load.
+        cpc   curr_pageh, prev_pageh
+        breq  pp_flash_same_page      ; Next load goes into the same page
 
-        rcall   commit_page     ; Commit, since next load goes to next page
-        movw    prev_pagel, curr_pagel  ; Update the prev-page tracking
+        rcall commit_page     ; Commit, since next load goes to next page
+        movw  prev_pagel, curr_pagel  ; Update the prev-page tracking
 
 pp_flash_same_page:
-        subi    cnt, 2          ; The flash is programmed by words
-        brne    pp_flash_pages  ; Continue untill all words are programmed
+        subi  cnt, 2          ; The flash is programmed by words
+        brne  pp_flash_pages  ; Continue untill all words are programmed
 
-        rcall   commit_page     ; Commit last loads
-        rjmp    pp_done         ; Flash programming done
+        rcall commit_page     ; Commit last loads
+        rjmp  pp_done         ; Flash programming done
 
 pp_eeprom:
-        lds     temp1, eepromsizelow
-        lds     temp2, eepromsizehigh
-        cp      temp1, stash2
-        cpc     temp2, stash3
-        brsh    pp_eeprom_sizeok
-        rjmp    put_failed      ; Fail when more bytes in buff than eeprom size
+        lds   temp, eepromsizelow
+        lds   temp2, eepromsizehigh
+        cp    temp, stash2
+        cpc   temp2, stash3
+        brsh  pp_eeprom_sizeok
+        rjmp  put_failed      ; Fail when more bytes in buff than eeprom size
 
 pp_eeprom_sizeok:
-        lsl     addrl           ; Convert word address to byte address
-        rol     addrh           ;
+        lsl   addrl           ; Convert word address to byte address
+        rol   addrh           ;
 
 pp_eeprom_bytes:
-        ldi     s_data, 0xC0    ; Write EEPROM memory
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ld      s_data, Z+
-        rcall   s_transmit      ; Program byte
-        rcall   poll_rdybsy     ; Poll completion
+        ldi   s_data, 0xC0    ; Write EEPROM memory
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ld    s_data, Z+
+        rcall s_transmit      ; Program byte
+        rcall poll_rdybsy     ; Poll completion
 
-        adiw    addrl, 1        ; Increment byte address
+        adiw  addrl, 1        ; Increment byte address
 
-        dec     cnt             ; Decrement buffer counter
-        brne    pp_eeprom_bytes
+        dec   cnt             ; Decrement buffer counter
+        brne  pp_eeprom_bytes
 
 pp_done:
-        rjmp    put_insync_ok   ; Success programming
+        rjmp  put_insync_ok   ; Success programming
 
 ;**** Cmnd_STK_READ_PAGE ****
 
 w10:
-        cpi     u_data, Cmnd_STK_READ_PAGE
-        brne    w11
+        cpi   u_data, Cmnd_STK_READ_PAGE
+        brne  w11
 
-        rcall   getc
-        mov     stash3, u_data  ; bytes_high
-        rcall   getc
-        mov     stash2, u_data  ; bytes_low
-        rcall   getc
-        mov     stash1, u_data  ; memtype
+        rcall getc
+        mov   stash3, u_data  ; bytes_high
+        rcall getc
+        mov   stash2, u_data  ; bytes_low
+        rcall getc
+        mov   stash, u_data   ; memtype
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        mov     cnt, stash2
+        mov   cnt, stash2
 
-        cpi     stash1, 'F'
-        breq    rp_flash        ; Flash is to be read
-        cpi     stash1, 'E'
-        breq    rp_eeprom       ; EEPROM is to be read
-        rjmp    put_failed      ; Undefined mem. type (protocol error)
+        cpi   stash, 'F'
+        breq  rp_flash        ; Flash is to be read
+        cpi   stash, 'E'
+        breq  rp_eeprom       ; EEPROM is to be read
+        rjmp  put_failed      ; Undefined mem. type (protocol error)
 
 rp_flash:
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
 rp_flash_words:
-        ldi     s_data, 0x20    ; Read program memory, low byte
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0x20    ; Read program memory, low byte
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send low byte
+        mov   u_data, s_data
+        rcall putc            ; Send low byte
 
-        ldi     s_data, 0x28    ; Read program memory, high byte
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0x28    ; Read program memory, high byte
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send high byte
+        mov   u_data, s_data
+        rcall putc            ; Send high byte
 
-        adiw    addrl, 1        ; Increment word address
-        subi    cnt, 2          ; Flash is read by words
-        brne    rp_flash_words
-        rjmp    rp_done
+        adiw  addrl, 1        ; Increment word address
+        subi  cnt, 2          ; Flash is read by words
+        brne  rp_flash_words
+        rjmp  rp_done
 
 rp_eeprom:
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
-        lsl     addrl
-        rol     addrh           ; Convert word address to byte address
+        lsl   addrl
+        rol   addrh           ; Convert word address to byte address
 
 rp_eeprom_bytes:
-        ldi     s_data, 0xA0
-        rcall   s_transmit
-        mov     s_data, addrh
-        rcall   s_transmit
-        mov     s_data, addrl
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0xA0
+        rcall s_transmit
+        mov   s_data, addrh
+        rcall s_transmit
+        mov   s_data, addrl
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send data byte
+        mov   u_data, s_data
+        rcall putc            ; Send data byte
 
-        adiw    addrl, 1        ; Increment byte address
-        dec     cnt
-        brne    rp_eeprom_bytes
+        adiw  addrl, 1        ; Increment byte address
+        dec   cnt
+        brne  rp_eeprom_bytes
 
 rp_done:
-        rjmp    put_ok
+        rjmp  put_ok
 
 ;**** Cmnd_STK_READ_SIGN ****
 
 w11:
-        cpi     u_data, Cmnd_STK_READ_SIGN
-        brne    w12
+        cpi   u_data, Cmnd_STK_READ_SIGN
+        brne  w12
 
-        rcall   getc
-        ldi     temp1, Sync_CRC_EOP
-        cpse    u_data, temp1
-        rjmp    put_nosync
+        rcall getc
+        ldi   temp, Sync_CRC_EOP
+        cpse  u_data, temp
+        rjmp  put_nosync
 
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
-        ldi     s_data, 0x30
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0x30
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send high byte
+        mov   u_data, s_data
+        rcall putc            ; Send high byte
 
-        ldi     s_data, 0x30
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x01
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0x30
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x01
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send middle byte
+        mov   u_data, s_data
+        rcall putc            ; Send middle byte
 
-        ldi     s_data, 0x30
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
-        ldi     s_data, 0x02
-        rcall   s_transmit
-        ldi     s_data, 0x00
-        rcall   s_transmit
+        ldi   s_data, 0x30
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
+        ldi   s_data, 0x02
+        rcall s_transmit
+        ldi   s_data, 0x00
+        rcall s_transmit
 
-        mov     u_data, s_data
-        rcall   putc            ; Send low byte
+        mov   u_data, s_data
+        rcall putc            ; Send low byte
 
-        rjmp    put_ok
+        rjmp  put_ok
 
 w12:
 
 ;**** UNKNOWN Command ****
 
-        rcall   getc
-        cpi     u_data, Sync_CRC_EOP
-        brne    put_nosync
+        rcall getc
+        cpi   u_data, Sync_CRC_EOP
+        brne  put_nosync
 
-        sbr     status, (1<<STAT_ERR)   ; Set error status
+        sbr   status, (1<<STAT_ERR)   ; Set error status
 
-        ldi     u_data, Resp_STK_UNKNOWN
-        rcall   putc
-        rjmp    waitcmd
+        ldi   u_data, Resp_STK_UNKNOWN
+        rcall putc
+        rjmp  waitcmd
 
 ;**** Replies and looping ****
 
 put_nosync:
-        sbr     status, (1<<STAT_ERR)   ; Set error status
+        sbr   status, (1<<STAT_ERR)   ; Set error status
 
-        ldi     u_data, Resp_STK_NOSYNC
-        rcall   putc
-        rjmp    waitcmd
+        ldi   u_data, Resp_STK_NOSYNC
+        rcall putc
+        rjmp  waitcmd
 
 put_insync_ok:
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 put_ok:
-        ldi     u_data, Resp_STK_OK
-        rcall   putc
-        rjmp    waitcmd
+        ldi   u_data, Resp_STK_OK
+        rcall putc
+        rjmp  waitcmd
 
 put_failed:
-        sbr     status, (1<<STAT_ERR)   ; Set error status
+        sbr   status, (1<<STAT_ERR)   ; Set error status
 
-        ldi     u_data, Resp_STK_FAILED
-        rcall   putc
-        rjmp    waitcmd
+        ldi   u_data, Resp_STK_FAILED
+        rcall putc
+        rjmp  waitcmd
 
 put_insync_nodevice:
-        ldi     u_data, Resp_STK_INSYNC
-        rcall   putc
+        ldi   u_data, Resp_STK_INSYNC
+        rcall putc
 
-        sbr     status, (1<<STAT_ERR)   ; Set error status
+        sbr   status, (1<<STAT_ERR)   ; Set error status
 
-        ldi     u_data, Resp_STK_NODEVICE
-        rcall   putc
-        rjmp    waitcmd
+        ldi   u_data, Resp_STK_NODEVICE
+        rcall putc
+        rjmp  waitcmd
 
 ;**** The Sign On message ****
 
