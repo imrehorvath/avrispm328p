@@ -34,7 +34,13 @@ Hook up your target AVR as usual. Common GND, Vcc, RST and the SPI (MOSI, MISO a
 
 **Note:** Make sure you connect a 10 uF capacitor between the RESET and GND pins of your Arduino board when applicable to prevent it from going into the bootloader when you want to program your target.
 
-**Note:** When the green LED is lit, the programmer drives the target. (In programming mode.) When the red LED is lit, the programmer encountered an error. When no LED is lit, the programmer is isolated from the target. (Input, no pullups.)
+### LED Status Indication (Optional)
+
+Even though hooking up the status indicator LEDs is optional, it can provide you with some useful hints about what's going on.
+
+The GREEN LED is lit, when the programmer enters Programming Mode and stays on during the entire duration while the programmer drives the target. It is turned off, when the programmer leaves Programming Mode, that is, when the programmer isolates itself from the target, letting it run in-system. To put it short, when the GREEN LED is lit, the programmer drives the target and when it is off, the programmer is isolated from the target.
+
+The RED LED is lit, when various error conditions occure. For example, when an UNKNOWN command is received from the computer, or when the sync with the computer is lost, or when there is an attempt to set an unsupported parameter, or when trying to use an unsupported mem. type (protocol error), or when there is an attempt to set more bytes in EEPROM than available, or when trying to enter Programming Mode whitout setting the device parameters first. It is turned off, when a successful sync has been established, or when leaving Programming Mode.
 
 ### Examples
 
