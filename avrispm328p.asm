@@ -1,7 +1,7 @@
 ;******************************************************************************
 ;* Title        : AVR ISP (ATmega328P, Addr. auto inc., STK500v1 at 115.2 kbps)
 ;* Version      : 1.0
-;* Last updated : Jan 20 2024 
+;* Last updated : Feb 08 2024 
 ;* Target       : ATmega328P clocked at 16 MHz
 ;* File         : avrispm328p.asm 
 ;* Author       : Imre Horvath <imi.horvath [at] gmail [dot] com>
@@ -139,7 +139,7 @@ buff:           .byte 256
 
 .cseg
 .org 0
-        rjmp  RESET
+        rjmp  reset
 
 ;******************************************************************************
 ;*
@@ -271,7 +271,7 @@ putc:
 ;******************************************************************************
 
 put_string:
-        lpm                   ; Load string char from program memory
+        lpm                   ; Load char from program memory into r0
         tst   r0
         breq  ps_ret          ; Check if end of string reached
         mov   u_data, r0
@@ -631,14 +631,15 @@ update_LEDs:
 
 ;******************************************************************************
 ;*
-;* RESET
+;* reset
 ;*
 ;* DESCRIPTION
-;*	 Initialization
+;*	 Called at power-on, and on reset.
+;*       Perform initialization of the programmer.
 ;*
 ;******************************************************************************
 
-RESET:
+reset:
         ldi   temp, high(RAMEND)
         out   SPH, temp
         ldi   temp, low(RAMEND)
@@ -655,6 +656,7 @@ RESET:
 ;*
 ;* DESCRIPTION
 ;*	 Wait for, and execute commands.
+;*       Main loop of the programmer.
 ;*
 ;******************************************************************************
 
@@ -693,9 +695,9 @@ w0:
         ldi   u_data, Resp_STK_INSYNC
         rcall putc
 
-        ldi   ZH, high(sign_on_msg*2)
-        ldi   ZL, low(sign_on_msg*2)
-        rcall put_string
+        ldi   ZH, high(2*sign_on_msg)
+        ldi   ZL, low(2*sign_on_msg)    ; Load the 16-bit byte address of msg.
+        rcall put_string                ; Send the sign on msg to the host.
 
         rjmp  put_ok
 
@@ -706,7 +708,7 @@ w1:
         brne  w2
 
         rcall getc
-        mov   stash, u_data          ; parameter
+        mov   stash, u_data           ; parameter
         rcall getc
         mov   stash2, u_data          ; value
 
@@ -723,7 +725,7 @@ w1:
 sp_failed:
         ldi   u_data, Resp_STK_INSYNC
         rcall putc
-        mov   u_data, stash          ; parameter
+        mov   u_data, stash           ; parameter
         rcall putc
         rjmp  put_failed      ; Attempt to set unsupported params is a fail
 
@@ -734,7 +736,7 @@ w2:
         brne  w3
 
         rcall getc
-        mov   stash, u_data          ; parameter
+        mov   stash, u_data           ; parameter
 
         rcall getc
         ldi   temp, Sync_CRC_EOP
@@ -842,7 +844,7 @@ w5:
         rcall s_init          ; Initialize SPI Master (SCK is set LOW)
 
         ldi   cnt, 8          ; Retry count
-ep_pluse_reset:
+ep_pulse_reset:
         rcall reset_off       ; Make a positive pulse on RST
         ldi   temp, 100
         rcall delay_us
@@ -856,14 +858,14 @@ ep_pluse_reset:
         rcall s_transmit
         ldi   s_data, 0x00
         rcall s_transmit
-        mov   stash, s_data  ; Stash received byte for sync-check
+        mov   stash, s_data   ; Stash received byte for sync-check
         ldi   s_data, 0x00
         rcall s_transmit
 
         cpi   stash, 0x53
         breq  ep_insync       ; If we received 0x53 back, then we are in sync
         dec   cnt 
-        brne  ep_pluse_reset  ; Otherwise loop, and try again
+        brne  ep_pulse_reset  ; Otherwise loop, and try again
 
 ep_insync:
         sbr   status, (1<<STAT_PM)    ; Set status: In Programming Mode
